@@ -199,7 +199,7 @@ gulp.task('default', ['clean'], function(cb) {
     'generate-service-worker-dist', cb);
 });
 
-gulp.task('gh-pages', function(callback) {
+gulp.task('gh-pages', ['default'], function(callback) {
   ghPages.publish(path.join(__dirname, 'dist'), callback);
 });
 
