@@ -26,7 +26,6 @@ var del = require('del');
 var ghPages = require('gh-pages');
 var gulp = require('gulp');
 var packageJson = require('./package.json');
-var pagespeed = require('psi');
 var path = require('path');
 var reload = browserSync.reload;
 var runSequence = require('run-sequence');
