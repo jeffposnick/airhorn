@@ -20,13 +20,17 @@
 'use strict';
 
 // Include Gulp & Tools We'll Use
-var gulp = require('gulp');
 var $ = require('gulp-load-plugins')();
-var del = require('del');
-var runSequence = require('run-sequence');
 var browserSync = require('browser-sync');
+var del = require('del');
+var ghPages = require('gh-pages');
+var gulp = require('gulp');
+var packageJson = require('./package.json');
 var pagespeed = require('psi');
+var path = require('path');
 var reload = browserSync.reload;
+var runSequence = require('run-sequence');
+var swPrecache = require('sw-precache');
 
 // Lint JavaScript
 gulp.task('jshint', function() {
@@ -154,8 +158,9 @@ gulp.task('html', function() {
 gulp.task('clean', del.bind(null, ['.tmp', 'dist/*', '!dist/.git'], {dot: true}));
 
 // Watch Files For Changes & Reload
-gulp.task('serve', ['styles'], function() {
+gulp.task('serve', ['styles', 'generate-service-worker-dev'], function() {
   browserSync({
+    port: 3000,
     notify: false,
     // Customize the BrowserSync console logging prefix
     logPrefix: 'WSK',
@@ -175,6 +180,7 @@ gulp.task('serve', ['styles'], function() {
 // Build and serve the output from the dist build
 gulp.task('serve:dist', ['default'], function() {
   browserSync({
+    port: 3001,
     notify: false,
     logPrefix: 'WSK',
     // Run as an https by uncommenting 'https: true'
@@ -188,19 +194,37 @@ gulp.task('serve:dist', ['default'], function() {
 
 // Build Production Files, the Default Task
 gulp.task('default', ['clean'], function(cb) {
-  runSequence('styles', ['html', 'scripts', 'styles', 'images', 'fonts', 'sounds', 'copy', 'copy-workerscripts'], cb);
+  runSequence('styles',
+    ['html', 'scripts', 'images', 'fonts', 'sounds', 'copy', 'copy-workerscripts'],
+    'generate-service-worker-dist', cb);
 });
 
-// Run PageSpeed Insights
-// Update `url` below to the public URL for your site
-gulp.task('pagespeed', pagespeed.bind(null, {
-  // By default, we use the PageSpeed Insights
-  // free (no API key) tier. You can use a Google
-  // Developer API key if you have one. See
-  // http://goo.gl/RkN0vE for info key: 'YOUR_API_KEY'
-  url: 'https://example.com',
-  strategy: 'mobile'
-}));
+gulp.task('gh-pages', function(callback) {
+  ghPages.publish(path.join(__dirname, 'dist'), callback);
+});
 
-// Load custom tasks from the `tasks` directory
-// try { require('require-dir')('tasks'); } catch (err) { console.error(err); }
+function writeServiceWorkerFile(rootDir, handleFetch, callback) {
+  var config = {
+    cacheId: packageJson.name,
+    // If handleFetch is false (i.e. because this is called from generate-service-worker-dev), then
+    // the service worker will precache resources but won't actually serve them.
+    // This allows you to test precaching behavior without worry about the cache preventing your
+    // local changes from being picked up during the development cycle.
+    handleFetch: handleFetch,
+    logger: $.util.log,
+    staticFileGlobs: [rootDir + '/**/*'],
+    stripPrefix: rootDir + '/',
+    // verbose defaults to false, but for the purposes of this demo, log more.
+    verbose: true
+  };
+
+  swPrecache.write(path.join(rootDir, 'service-worker.js'), config, callback);
+}
+
+gulp.task('generate-service-worker-dev', function(callback) {
+  writeServiceWorkerFile('app', false, callback);
+});
+
+gulp.task('generate-service-worker-dist', function(callback) {
+  writeServiceWorkerFile('dist', true, callback);
+});
