@@ -211,7 +211,7 @@ function writeServiceWorkerFile(rootDir, handleFetch, callback) {
     // local changes from being picked up during the development cycle.
     handleFetch: handleFetch,
     logger: $.util.log,
-    staticFileGlobs: [rootDir + '/**/*'],
+    staticFileGlobs: [rootDir + '/**/*.{js,css,html}', rootDir + '/sounds/airhorn.mp3'],
     stripPrefix: rootDir + '/',
     // verbose defaults to false, but for the purposes of this demo, log more.
     verbose: true
